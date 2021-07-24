@@ -1,0 +1,211 @@
+var token = "1718548843:AAGZPWxhnFCq6MpxnZyAupgdP_v5boUfpAI";
+var teleurl = "https://api.telegram.org/bot" + token;
+var webappurl = "https://script.google.com/macros/s/AKfycbyFKJC1YjOykA8qWwjbPh6GJ9qJ3aYe2YDVCoM6xh9YI1c4062OLppoxQSdguLaGlvqRQ/exec"
+var spreadsheetid = "1rics6aU5BXumYV_j-hqk5YyDYmPX8jonhLKO8xIIZFk"
+var newline = "%0A"
+
+function getMe(){
+  var url = teleurl + "/getMe";
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText())
+}
+
+function setWebhook(){
+ var url = teleurl + "/setWebhook?url=" + webappurl;
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText())
+}
+function sendText(id,text){
+ var url = teleurl + "/sendMessage?chat_id=" + id + "&text=" + text;
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText())
+}
+function doGet(e){
+  return HtmlService.createHtmlOutput("Hello!")
+}
+
+function finder( sheet, value, id, name){
+  var data = sheet.getDataRange().getValues(); // count lines
+  var counter = false; //
+  for(var i = 0; i<data.length; i++){
+    if(data[i][3] == value){ //[3] because column D
+      if (data[i][4] != ''){
+        sendText(id, "A: " + data[i][4]);
+      }
+      else{
+        sendText(id, "Hi " + name + "," + " please be patient, the teacher is still answering the question!")
+      }
+      counter = true; 
+    }
+    
+  }
+  if (counter == false){
+    sheet.appendRow([new Date(),id, name, value]);
+    sendText(id, "Hi " + name + "," + "your question is received and currently being answered by a teacher!")
+  }
+}
+
+function regex( sheet, value, id, name){
+  var data = sheet.getDataRange().getValues();
+  for(var i = 0; i<data.length; i++){
+    var j = 0;
+    var questionsplt = data[i][3].split(" ")[j];
+    while (questionsplt) {
+      
+      if(questionsplt == value){ //[1] because column B
+        if (data[i][4] != ''){
+          sendText(id, "Q: " + data[i][3]);
+          sendText(id, "A: " + data[i][4]);
+        } 
+        else if (data[i][4] == ''){
+        sendText(id, "Q: " + data[i][3]);
+        sendText(id, "Hi " + name + "," + " question has been asked, no reply yet!");
+        } 
+      }
+      j++;
+      questionsplt = data[i][3].split(" ")[j];
+    }  
+  }
+}
+
+function help(id){
+  var txt = "Hello! I am EduAsk! I am here to help you get the answer to any of your subject questions!" 
+  + newline +
+   newline + 
+   "Here are some of my commands!" 
+   + newline +
+    newline +
+    "To search for a question and see if theres an answer to it: " + "@(subject) (question)"  
+  + newline + 
+  "eg @chemistry what is a solution?"
+   + newline +
+     newline +
+  "To search for a question using a single word:" + " @(subject) findall (word)"
+      + newline +
+  "eg @physics findall force?"
+        + newline +
+       newline +
+  "To open this page: " + "/help"
+        + newline +
+       newline +
+  "To see available teachers and their remedial slots: " 
+  + newline + 
+  "@(subject) consultation (day) (hour)"
+  + newline +
+  "eg @math consultation tuesday 16"
+      + newline +
+       newline +
+  "Available subjects:"
+        + newline +
+         newline +
+  "@physics"
+  + newline +
+  "@chemistry"
+  + newline +
+  "@math"
+  + newline +
+  "@english"
+  + newline +
+  "@geog"
+  + newline +
+  "@literature"
+  + newline +
+  "@history"
+  sendText(id, txt);
+}
+
+function consultation(id, sheet_name, day, time){
+  var sheetname = day + " consultation";
+  
+  var consultsheet = SpreadsheetApp.openById(spreadsheetid).getSheetByName(sheetname) ? SpreadsheetApp.openById(spreadsheetid).getSheetByName(sheetname) : sendText("Day not found, please type in day in full and lower case (monday, tuesday, wednesday, etc)");
+  var sbjname = 0;
+  switch(sheet_name){
+    case "physics":
+      sbjname = 2;
+      break;
+    case "chemistry":
+      sbjname = 1;
+      break;
+    case "math":
+      sbjname = 3;
+      break;
+    case "english":
+      sbjname = 4;
+      break;
+    case "geog":
+      sbjname = 5;
+      break;
+    case "literature":
+      sbjname = 6;
+      break;
+    case "history":
+      sbjname = 7;
+      break;
+  }
+  var hour = parseInt(time);
+  
+  var data = consultsheet.getDataRange().getValues();
+  var cher = data[hour+1][sbjname];
+  if (!cher){
+    sendText(id, "No teacher for the session! Please find another slot!");
+  }
+  
+  var session = ""; 
+  for(var i = 1; i<25; i++){
+    if(data[i][9] == cher){ //[9] because column J
+      if (data[i][10] != ''){
+        session = data[i][10];
+      }
+      else{
+        sendText(id, "Hi " + name + "," + " teacher has yet to allocate a session! Please msg him/her or find another slot!");
+      }
+      break;
+    }
+    
+  }
+  var text = "Teacher available: " + data[hour+1][sbjname] 
+  + newline +
+  "Tele group/zoom session available: " + session;
+  sendText(id,text);
+}
+
+
+
+function doPost(e){
+  var data = JSON.parse(e.postData.contents);
+  var text = data.message.text;
+  var id = data.message.chat.id;
+  var name = data.message.chat.first_name + " " + data.message.chat.last_name
+  //var answer = "Hi " + name + ", thanks for your question!" + "(" + text + ")";
+  //sendText(id,answer);
+  //SpreadsheetApp.openById(spreadsheetid).getSheets()[0].appendRow([new Date(),id, name, text,answer]); //this one sends to first sheet
+  
+  //this one sends to specific sheets
+  if( /^@/.test(text)){ 
+
+    var sheetname = text.slice(1).split(" ")[0];
+    var sheet = SpreadsheetApp.openById(spreadsheetid).getSheetByName(sheetname) ? SpreadsheetApp.openById(spreadsheetid).getSheetByName(sheetname) : sendText(id, "Hi " + name + "," + "sorry,the subject is not avaliable");
+    if(text.split(" ")[1] == 'findall'){
+      var comment = text.split(" ").slice(2).join(" ");
+      regex(sheet, comment, id, name)
+    }
+
+    else if(text.split(" ")[1] == 'consultation'){
+      var day = text.split(" ")[2];
+      var time = text.split(" ")[3]; 
+      consultation(id, sheetname, day, time);
+    }
+
+    else{
+    var comment = text.split(" ").slice(1).join(" ");
+    finder(sheet, comment, id, name)
+    }
+  }
+  else if(text == '/help'){
+      help(id);
+  }
+
+  else { 
+    sendText(id, "If you need further assistant type /help!");
+  }
+}
