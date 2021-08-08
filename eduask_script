@@ -1,7 +1,7 @@
-var token = "1718548843:AAGZPWxhnFCq6MpxnZyAupgdP_v5boUfpAI";
+var token = "YOUR_TOKEN_HERE";
 var teleurl = "https://api.telegram.org/bot" + token;
-var webappurl = "https://script.google.com/macros/s/AKfycbyFKJC1YjOykA8qWwjbPh6GJ9qJ3aYe2YDVCoM6xh9YI1c4062OLppoxQSdguLaGlvqRQ/exec"
-var spreadsheetid = "1rics6aU5BXumYV_j-hqk5YyDYmPX8jonhLKO8xIIZFk"
+var webappurl = "WEBAPP_URL HERE"
+var spreadsheetid = "SPREADSHEET_ID"
 var newline = "%0A"
 
 function getMe(){
